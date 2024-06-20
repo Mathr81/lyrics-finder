@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lyrics Finder</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        #lyrics {
+            white-space: pre;
+            column-gap: 2rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="w-full max-w-md mx-auto bg-white rounded-lg shadow-lg p-8" id="formContainer">
+        <h1 class="text-2xl font-bold mb-4 text-center">Lyrics Finder</h1>
+        <form id="lyricsForm" class="mb-4">
+            <div class="mb-4">
+                <label for="artist" class="block text-sm font-medium text-gray-700">Artiste</label>
+                <input type="text" id="artist" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
+            </div>
+            <div class="mb-4">
+                <label for="song" class="block text-sm font-medium text-gray-700">Chanson</label>
+                <input type="text" id="song" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
+            </div>
+            <button type="submit" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Rechercher les paroles</button>
+        </form>
+    </div>
+    <div id="lyricsContainer" class="hidden w-full max-w-6xl mx-auto bg-white p-8 rounded-lg shadow-lg overflow-auto">
+        <div id="lyrics" class="whitespace-pre-wrap text-gray-800"></div>
+        <div class="flex justify-end mt-4">
+            <button id="fullscreenButton" class="mr-4 bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">Plein écran</button>
+            <button id="backButton" class="bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Retour</button>
+        </div>
+    </div>
+    <script>
+        let fullscreenActive = false;
+
+        document.getElementById('lyricsForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const artist = document.getElementById('artist').value;
+            const song = document.getElementById('song').value;
+            const lyricsDiv = document.getElementById('lyrics');
+            const formContainer = document.getElementById('formContainer');
+            const lyricsContainer = document.getElementById('lyricsContainer');
+
+            formContainer.classList.add('hidden');
+            lyricsContainer.classList.remove('hidden');
+            lyricsDiv.textContent = 'Chargement...';
+
+            try {
+                const response = await fetch(`https://api.lyrics.ovh/v1/${artist}/${song}`);
+                const data = await response.json();
+                if (data.lyrics) {
+                    const lines = data.lyrics.split('\n')
+
+                    if (lines.length > 0) {
+                        lines[0] = `<strong>${lines[0]}</strong>`;
+                    }
+
+                    lyricsDiv.innerHTML = lines.join('<br>');
+                    adjustTextSizeAndColumns();
+                } else {
+                    lyricsDiv.textContent = 'Paroles non trouvées.';
+                }
+            } catch (error) {
+                lyricsDiv.textContent = 'Erreur lors de la récupération des paroles.';
+            }
+        });
+
+        document.getElementById('backButton').addEventListener('click', function() {
+            const formContainer = document.getElementById('formContainer');
+            const lyricsContainer = document.getElementById('lyricsContainer');
+
+            lyricsContainer.classList.add('hidden');
+            formContainer.classList.remove('hidden');
+            document.getElementById('artist').value = '';
+            document.getElementById('song').value = '';
+            document.getElementById('lyrics').textContent = '';
+        });
+
+        document.getElementById('fullscreenButton').addEventListener('click', function() {
+            const lyricsContainer = document.getElementById('lyricsContainer');
+
+            if (!fullscreenActive) {
+                if (lyricsContainer.requestFullscreen) {
+                    lyricsContainer.requestFullscreen();
+                } else if (lyricsContainer.mozRequestFullScreen) { /* Firefox */
+                    lyricsContainer.mozRequestFullScreen();
+                } else if (lyricsContainer.webkitRequestFullscreen) { /* Chrome, Safari & Opera */
+                    lyricsContainer.webkitRequestFullscreen();
+                } else if (lyricsContainer.msRequestFullscreen) { /* IE/Edge */
+                    lyricsContainer.msRequestFullscreen();
+                }
+
+                fullscreenActive = true;
+                document.getElementById('fullscreenButton').textContent = 'Quitter le plein écran';
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.mozCancelFullScreen) { /* Firefox */
+                    document.mozCancelFullScreen();
+                } else if (document.webkitExitFullscreen) { /* Chrome, Safari & Opera */
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) { /* IE/Edge */
+                    document.msExitFullscreen();
+                }
+
+                fullscreenActive = false;
+                document.getElementById('fullscreenButton').textContent = 'Plein écran';
+            }
+        });
+
+		document.addEventListener('fullscreenchange', function(event) {
+			if (!document.fullscreenElement) {
+				fullscreenActive = false;
+				document.getElementById('fullscreenButton').textContent = 'Plein écran';
+			} else {
+				fullscreenActive = true;
+				document.getElementById('fullscreenButton').textContent = 'Quitter le plein écran';
+			}
+		});
+
+		document.addEventListener('mozfullscreenchange', function(event) {
+			if (!document.mozFullScreen) {
+				fullscreenActive = false;
+				document.getElementById('fullscreenButton').textContent = 'Plein écran';
+			} else {
+				fullscreenActive = true;
+				document.getElementById('fullscreenButton').textContent = 'Quitter le plein écran';
+			}
+		});
+
+		document.addEventListener('webkitfullscreenchange', function(event) {
+			if (!document.webkitIsFullScreen) {
+				fullscreenActive = false;
+				document.getElementById('fullscreenButton').textContent = 'Plein écran';
+			} else {
+				fullscreenActive = true;
+				document.getElementById('fullscreenButton').textContent = 'Quitter le plein écran';
+			}
+		});
+
+		document.addEventListener('msfullscreenchange', function(event) {
+			if (!document.msFullscreenElement) {
+				fullscreenActive = false;
+				document.getElementById('fullscreenButton').textContent = 'Plein écran';
+			} else {
+				fullscreenActive = true;
+				document.getElementById('fullscreenButton').textContent = 'Quitter le plein écran';
+			}
+});
+
+
+        function adjustTextSizeAndColumns() {
+            const lyricsContainer = document.getElementById('lyricsContainer');
+            const lyricsDiv = document.getElementById('lyrics');
+            const containerWidth = lyricsContainer.clientWidth;
+            const containerHeight = lyricsContainer.clientHeight;
+
+            let fontSize = 16; // initial font size in px
+            let columns = 1; // initial number of columns
+
+            lyricsDiv.style.fontSize = `${fontSize}px`;
+            lyricsDiv.style.columnCount = columns;
+
+            while (lyricsDiv.scrollHeight > containerHeight && fontSize > 10) {
+                fontSize--;
+                lyricsDiv.style.fontSize = `${fontSize}px`;
+            }
+
+            while (lyricsDiv.scrollHeight <= containerHeight && fontSize < 36) {
+                fontSize++;
+                lyricsDiv.style.fontSize = `${fontSize}px`;
+
+                if (lyricsDiv.scrollHeight > containerHeight) {
+                    fontSize--;
+                    lyricsDiv.style.fontSize = `${fontSize}px`;
+                    break;
+                }
+            }
+
+            while (lyricsDiv.scrollWidth < containerWidth && columns < 6) {
+                columns++;
+                lyricsDiv.style.columnCount = columns;
+                lyricsDiv.style.columnFill = 'auto';
+
+                if (lyricsDiv.scrollWidth > containerWidth || lyricsDiv.scrollHeight > containerHeight) {
+                    columns--;
+                    lyricsDiv.style.columnCount = columns;
+                    break;
+                }
+            }
+        }
+    </script>
+</body>
+</html>
